@@ -14,7 +14,7 @@ const SentimentChart = ({ data }) => {
                 <CardDescription>Proportion of feedback sentiments</CardDescription>
             </CardHeader>
             <CardContent className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                     <PieChart>
                         <Pie
                             data={data}

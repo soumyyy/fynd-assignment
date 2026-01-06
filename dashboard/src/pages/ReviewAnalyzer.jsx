@@ -76,7 +76,7 @@ const ReviewAnalyzer = () => {
                     <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-md overflow-hidden ring-1 ring-black/5">
                         <CardHeader className="bg-gradient-to-r from-primary/5 to-secondary/5 pb-8 pt-6">
                             <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-widest">
-                                Manager Response
+                                Response
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="p-8">
@@ -131,7 +131,7 @@ const ReviewAnalyzer = () => {
                     {/* Optional Text Review */}
                     <div className="space-y-4">
                         <div className="flex justify-between items-baseline px-1">
-                            <label className="text-sm font-semibold text-foreground/70">Review (Optional)</label>
+                            <label className="text-sm font-semibold text-foreground/70">Review</label>
                             <span className="text-xs text-muted-foreground italic">Tell us more</span>
                         </div>
                         <Textarea
@@ -162,9 +162,6 @@ const ReviewAnalyzer = () => {
                 </CardContent>
             </Card>
 
-            <p className="text-center text-xs text-muted-foreground/40">
-                Powered by Customer Experience Engine
-            </p>
         </div>
     );
 };

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -8,45 +8,63 @@ import { getReviews } from '@/lib/db';
 import { Upload, FileText, CheckCircle, RefreshCcw, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 
-const mockRatingData = [
-    { name: '1 ★', value: 15 },
-    { name: '2 ★', value: 25 },
-    { name: '3 ★', value: 30 },
-    { name: '4 ★', value: 80 },
-    { name: '5 ★', value: 50 },
-];
-
-const mockSentimentData = [
-    { name: 'Positive', value: 130 },
-    { name: 'Neutral', value: 30 },
-    { name: 'Negative', value: 40 },
-];
-
 const BatchAnalysis = () => {
-    const [dataLoaded, setDataLoaded] = useState(false);
     const [localSubmissions, setLocalSubmissions] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
+    const [loading, setLoading] = useState(true);
 
     // Fetch from Supabase
     const fetchData = async () => {
         const reviews = await getReviews();
         setLocalSubmissions(reviews);
+        setLoading(false);
     };
 
     useEffect(() => {
         fetchData();
-
-        // Real-time polling
         const interval = setInterval(fetchData, 5000);
         return () => clearInterval(interval);
     }, []);
 
-    const handleLoadSample = () => {
-        setTimeout(() => setDataLoaded(true), 800);
-    };
+    // Derived Metrics from Real Data
+    const metrics = useMemo(() => {
+        const total = localSubmissions.length;
+        if (total === 0) return {
+            avgRating: 0,
+            ratingDist: [],
+            sentimentDist: []
+        };
+
+        // Average Rating
+        const sum = localSubmissions.reduce((acc, curr) => acc + (curr.user_rating || curr.rating || 0), 0);
+        const avgRating = (sum / total).toFixed(1);
+
+        // Rating Distribution
+        const ratings = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+        localSubmissions.forEach(sub => {
+            const r = sub.user_rating || sub.rating || 0;
+            if (ratings[r] !== undefined) ratings[r]++;
+        });
+        const ratingDist = Object.entries(ratings).map(([name, value]) => ({ name: `${name} ★`, value }));
+
+        // Sentiment Distribution
+        const sentiments = { positive: 0, neutral: 0, negative: 0 };
+        localSubmissions.forEach(sub => {
+            const s = sub.sentiment ? sub.sentiment.toLowerCase() : 'neutral';
+            if (sentiments[s] !== undefined) sentiments[s]++;
+            else sentiments.neutral++;
+        });
+        const sentimentDist = [
+            { name: 'Positive', value: sentiments.positive },
+            { name: 'Neutral', value: sentiments.neutral },
+            { name: 'Negative', value: sentiments.negative },
+        ];
+
+        return { avgRating, ratingDist, sentimentDist };
+    }, [localSubmissions]);
 
     const filteredSubmissions = localSubmissions.filter(sub =>
-        sub.text.toLowerCase().includes(searchTerm.toLowerCase())
+        (sub.text || "").toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     return (
@@ -54,24 +72,21 @@ const BatchAnalysis = () => {
             <div className="flex flex-col md:flex-row gap-6 justify-between items-start md:items-center">
                 <div>
                     <h2 className="text-3xl font-bold tracking-tight text-primary">Admin Dashboard</h2>
-                    <p className="text-muted-foreground mt-1">Live overview of feedback, summaries, and recommended actions.</p>
+                    <p className="text-muted-foreground mt-1">Live overview of customer sentiment and performance metrics.</p>
                 </div>
                 <div className="flex gap-3">
-                    <Button variant="outline" onClick={handleLoadSample} className={dataLoaded ? "hidden" : ""}>
-                        <FileText className="mr-2 h-4 w-4" /> Load Demo Data
-                    </Button>
                     <Button variant="secondary" onClick={fetchData}>
-                        <RefreshCcw className="mr-2 h-4 w-4" /> Refresh
+                        <RefreshCcw className="mr-2 h-4 w-4" /> Refresh Data
                     </Button>
                 </div>
             </div>
 
-            {/* Live Table Section (Always Visible) */}
+            {/* Live Table Section */}
             <Card className="border-none shadow-md bg-white/60 backdrop-blur-sm">
                 <CardHeader className="flex flex-row items-center justify-between">
                     <div>
-                        <CardTitle>Recent Submissions</CardTitle>
-                        <CardDescription>Real-time feed from the User Dashboard.</CardDescription>
+                        <CardTitle>Recent Feedback</CardTitle>
+                        <CardDescription>Real-time feed from user submissions.</CardDescription>
                     </div>
                     <div className="relative w-64">
                         <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -85,41 +100,32 @@ const BatchAnalysis = () => {
                 </CardHeader>
                 <CardContent>
                     <div className="rounded-md border bg-white">
-                        {/* Table Header */}
                         <div className="grid grid-cols-12 gap-4 p-4 border-b bg-muted/40 font-medium text-sm text-muted-foreground">
                             <div className="col-span-1">Rating</div>
-                            <div className="col-span-4">Review Text</div>
-                            <div className="col-span-3">AI Summary</div>
-                            <div className="col-span-3">Recommended Action</div>
+                            <div className="col-span-4">Review</div>
+                            <div className="col-span-3">Summary</div>
+                            <div className="col-span-3">Action</div>
                             <div className="col-span-1 text-right">Time</div>
                         </div>
-                        {/* Table Body */}
                         <div className="max-h-[400px] overflow-y-auto">
                             {filteredSubmissions.length === 0 ? (
                                 <div className="p-8 text-center text-muted-foreground">
-                                    No submissions found. Try submitting a review in the Analyzer.
+                                    No reviews yet. Share the portal link to get feedback!
                                 </div>
                             ) : (
                                 filteredSubmissions.map((sub) => (
                                     <div key={sub.id} className="grid grid-cols-12 gap-4 p-4 border-b last:border-0 hover:bg-muted/10 transition-colors items-start text-sm">
-                                        {/* Rating */}
                                         <div className="col-span-1 font-bold text-lg flex items-center">
                                             <span className={(sub.user_rating || sub.rating) >= 4 ? "text-green-600" : (sub.user_rating || sub.rating) <= 2 ? "text-red-500" : "text-yellow-600"}>
                                                 {sub.user_rating || sub.rating} ★
                                             </span>
                                         </div>
-
-                                        {/* Review Text */}
                                         <div className="col-span-4 text-foreground/80 break-words pr-2">
-                                            {sub.text}
+                                            {sub.text || <span className="italic text-muted-foreground">No text provided</span>}
                                         </div>
-
-                                        {/* AI Summary */}
                                         <div className="col-span-3 text-muted-foreground italic bg-muted/20 p-2 rounded text-xs">
                                             {sub.ai_summary || "Processing..."}
                                         </div>
-
-                                        {/* Recommended Action */}
                                         <div className="col-span-3">
                                             {sub.ai_action ? (
                                                 <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
@@ -129,8 +135,6 @@ const BatchAnalysis = () => {
                                                 <span className="text-xs text-muted-foreground">-</span>
                                             )}
                                         </div>
-
-                                        {/* Time */}
                                         <div className="col-span-1 text-right text-xs text-muted-foreground">
                                             {new Date(sub.created_at || sub.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                         </div>
@@ -142,38 +146,32 @@ const BatchAnalysis = () => {
                 </CardContent>
             </Card>
 
-            {!dataLoaded ? (
-                <Card className="border-dashed h-[300px] flex items-center justify-center bg-gray-50/50 cursor-pointer hover:bg-muted/20 transition-colors" onClick={handleLoadSample}>
-                    <div className="text-center space-y-4 text-muted-foreground">
-                        <Upload className="h-12 w-12 mx-auto opacity-20" />
-                        <p>Load full dataset to view aggregate analytics charts.</p>
-                    </div>
-                </Card>
-            ) : (
+            {/* Metrics & Analytics (Now powered by Real Data) */}
+            {localSubmissions.length > 0 && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in slide-in-from-bottom-8 duration-700">
                     <Card className="md:col-span-2 bg-gradient-to-r from-primary/5 to-secondary/30 border-none shadow-sm">
                         <CardContent className="p-6 flex flex-wrap gap-8 justify-around items-center text-center">
                             <div>
                                 <div className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Total Reviews</div>
-                                <div className="text-4xl font-bold text-primary">200</div>
+                                <div className="text-4xl font-bold text-primary">{localSubmissions.length}</div>
                             </div>
                             <div>
                                 <div className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Average Rating</div>
-                                <div className="text-4xl font-bold text-primary">3.8</div>
+                                <div className="text-4xl font-bold text-primary">{metrics.avgRating}</div>
                             </div>
                             <div>
-                                <div className="text-sm font-medium text-muted-foreground uppercase tracking-wide">AI Accuracy</div>
+                                <div className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Responses Generated</div>
                                 <div className="text-4xl font-bold text-green-600 flex items-center gap-2">
-                                    94% <CheckCircle className="h-6 w-6" />
+                                    {localSubmissions.length} <CheckCircle className="h-6 w-6" />
                                 </div>
                             </div>
                         </CardContent>
                     </Card>
                     <div className="h-[400px]">
-                        <RatingChart data={mockRatingData} />
+                        <RatingChart data={metrics.ratingDist} />
                     </div>
                     <div className="h-[400px]">
-                        <SentimentChart data={mockSentimentData} />
+                        <SentimentChart data={metrics.sentimentDist} />
                     </div>
                 </div>
             )}

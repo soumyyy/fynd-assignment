@@ -13,7 +13,7 @@ const RatingChart = ({ data }) => {
                 <CardDescription>Overview of customer satisfaction levels</CardDescription>
             </CardHeader>
             <CardContent className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                     <BarChart data={data}>
                         <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
                         <XAxis dataKey="name" fontSize={12} />
