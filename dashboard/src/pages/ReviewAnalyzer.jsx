@@ -1,140 +1,170 @@
 import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { analyzeReview } from '@/lib/api';
-import { saveReview } from '@/lib/db';
-import { Loader2, Sparkles, Check } from 'lucide-react';
-import ChainOfThought from '@/components/dashboard/ChainOfThought';
+import { analyzeReview } from '@/lib/api'; // Mock Engine
+import { saveReview } from '@/lib/db';     // Supabase
+import { Loader2, Send, Star, CheckCircle2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const ReviewAnalyzer = () => {
     const [review, setReview] = useState('');
+    const [userRating, setUserRating] = useState(0);
     const [result, setResult] = useState(null);
     const [loading, setLoading] = useState(false);
-    const [saved, setSaved] = useState(false);
+    const [submitted, setSubmitted] = useState(false);
 
-    const handleAnalyze = async () => {
-        if (!review.trim()) return;
+    const handleSubmit = async () => {
+        if (userRating === 0) {
+            alert("Please select a star rating to continue.");
+            return;
+        }
 
         setLoading(true);
-        setResult(null);
-        setSaved(false);
 
-        // Simulate complex thinking time
-        setTimeout(async () => {
-            try {
-                const data = await analyzeReview(review);
-                setResult(data);
+        try {
+            // Get AI Response (Owner Persona)
+            const data = await analyzeReview(review, userRating);
+            setResult(data);
 
-                // Save to Supabase
-                const savedRecord = await saveReview({
-                    rating: data.stars,
-                    text: review,
-                    sentiment: data.sentiment,
-                    explanation: data.explanation,
-                    dimensions: data.dimensions
-                });
+            // Save to Backend
+            await saveReview({
+                user_rating: userRating,
+                text: review || "", // Save empty string if optional
 
-                if (savedRecord) {
-                    setSaved(true);
-                } else {
-                    console.error("Save failed - check console for details");
-                    alert("Failed to save to database! Check your .env configuration and Supabase RLS policies.");
-                }
-            } catch (error) {
-                console.error("Analysis failed:", error);
-            } finally {
-                setLoading(false);
-            }
-        }, 2500);
+                // Analytics
+                rating: data.stars,
+                sentiment: data.sentiment,
+                explanation: data.explanation,
+                dimensions: data.dimensions,
+                ai_response: data.ai_response,
+                ai_summary: data.ai_summary,
+                ai_action: data.ai_action
+            });
+
+            setSubmitted(true);
+        } catch (error) {
+            console.error("Submission error:", error);
+            alert("Something went wrong. Please try again.");
+        } finally {
+            setLoading(false);
+        }
     };
 
-    return (
-        <div className="max-w-4xl mx-auto space-y-12 pb-20">
-            {/* Input Section */}
-            <div className="grid gap-8 md:grid-cols-5 items-start">
-                <div className="md:col-span-2 space-y-4 sticky top-24">
-                    <h2 className="text-4xl font-bold tracking-tight text-primary font-display">
-                        Analyze Feedback
-                    </h2>
-                    <p className="text-lg text-muted-foreground leading-relaxed">
-                        Paste a customer review to reveal hidden sentiments and predict ratings with our enterprise AI engine.
-                    </p>
+    const handleReset = () => {
+        setReview('');
+        setUserRating(0);
+        setResult(null);
+        setSubmitted(false);
+    };
 
-                    <div className="p-4 bg-muted/30 rounded-lg border text-sm text-muted-foreground">
-                        <p className="font-semibold mb-2">Try this example:</p>
-                        <p className="italic">"The ambiance was incredible and the staff were so kind, but the food took way too long to arrive. A bit overpriced for what we got."</p>
+    if (submitted && result) {
+        return (
+            <div className="max-w-xl mx-auto pt-20 pb-20 px-4">
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="space-y-6 text-center"
+                >
+                    <div className="flex justify-center text-green-600 mb-6">
+                        <CheckCircle2 className="w-20 h-20" />
                     </div>
-                </div>
 
-                <Card className="md:col-span-3 border-2 border-muted/30 shadow-xl bg-white/80 backdrop-blur-sm overflow-hidden">
-                    <CardHeader className="bg-muted/10 border-b border-muted/20">
-                        <CardTitle className="text-lg font-medium flex items-center gap-2">
-                            <Sparkles className="w-4 h-4 text-primary" />
-                            Input Review
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-0">
-                        <Textarea
-                            placeholder="Paste review content here..."
-                            value={review}
-                            onChange={(e) => {
-                                setReview(e.target.value);
-                                setResult(null); // Reset on change
-                                setSaved(false);
-                            }}
-                            className="min-h-[200px] text-lg p-6 border-0 focus-visible:ring-0 resize-none bg-transparent"
-                        />
-                    </CardContent>
-                    <CardFooter className="flex justify-between items-center bg-muted/5 border-t border-muted/20 p-4">
-                        <span className="text-xs text-muted-foreground">
-                            {review.length} characters
-                        </span>
-                        <Button
-                            onClick={handleAnalyze}
-                            disabled={loading || !review.trim()}
-                            size="lg"
-                            className={cn(
-                                "transition-all duration-300 font-semibold shadow-lg",
-                                saved ? "bg-green-600 hover:bg-green-700 shadow-green-200" : "shadow-primary/20"
-                            )}
-                        >
-                            {loading ? (
-                                <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Analyzing...
-                                </>
-                            ) : saved ? (
-                                <>
-                                    <Check className="mr-2 h-4 w-4" />
-                                    Analyzed & Saved
-                                </>
-                            ) : (
-                                <>
-                                    <Sparkles className="mr-2 h-4 w-4" />
-                                    Analyze Review
-                                </>
-                            )}
-                        </Button>
-                    </CardFooter>
-                </Card>
+                    <h2 className="text-3xl font-bold text-primary font-display">Thank You!</h2>
+
+                    <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-md overflow-hidden ring-1 ring-black/5">
+                        <CardHeader className="bg-gradient-to-r from-primary/5 to-secondary/5 pb-8 pt-6">
+                            <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-widest">
+                                Manager Response
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-8">
+                            <p className="text-xl font-medium text-foreground/80 leading-relaxed font-serif italic">
+                                "{result.ai_response}"
+                            </p>
+                        </CardContent>
+                        <CardFooter className="justify-center bg-gray-50/50 p-6">
+                            <Button onClick={handleReset} variant="outline">Submit Another Review</Button>
+                        </CardFooter>
+                    </Card>
+                </motion.div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="max-w-2xl mx-auto pt-12 pb-20 px-4 space-y-8">
+            <div className="text-center space-y-4 mb-12">
+                <h1 className="text-4xl md:text-5xl font-bold text-primary font-display">How was your experience?</h1>
+                <p className="text-lg text-muted-foreground max-w-lg mx-auto">
+                    We value your feedback. Please rate your visit and let us know how we did.
+                </p>
             </div>
 
-            {/* AI Reasoning Section (Walking Route) */}
-            {(loading || result) && (
-                <div className="border-t border-dashed border-primary/20 pt-10 animate-in fade-in slide-in-from-bottom-8 duration-700">
-                    <div className="flex items-center justify-center gap-4 mb-8">
-                        <div className="h-px bg-border flex-1 max-w-[100px]" />
-                        <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-widest">
-                            Live AI Reasoning
-                        </h3>
-                        <div className="h-px bg-border flex-1 max-w-[100px]" />
+            <Card className="border-0 shadow-2xl bg-white/70 backdrop-blur-xl ring-1 ring-black/5 overflow-hidden">
+                <CardContent className="p-8 md:p-12 space-y-10">
+
+                    {/* Star Rating Section */}
+                    <div className="space-y-4 text-center">
+                        <div className="flex justify-center gap-2 md:gap-4">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                                <motion.button
+                                    whileHover={{ scale: 1.2 }}
+                                    whileTap={{ scale: 0.9 }}
+                                    key={star}
+                                    onClick={() => setUserRating(star)}
+                                    className={cn(
+                                        "text-4xl md:text-5xl transition-colors duration-200 focus:outline-none",
+                                        userRating >= star ? 'text-yellow-400 drop-shadow-sm' : 'text-gray-200 hover:text-gray-300'
+                                    )}
+                                >
+                                    <Star className={cn("w-10 h-10 md:w-12 md:h-12 fill-current")} />
+                                </motion.button>
+                            ))}
+                        </div>
+                        <p className="text-sm font-medium text-muted-foreground h-6">
+                            {userRating === 5 ? "Excellent!" : userRating === 4 ? "Good" : userRating === 3 ? "Average" : userRating === 2 ? "Poor" : userRating === 1 ? "Terrible" : "Tap a star to rate"}
+                        </p>
                     </div>
 
-                    <ChainOfThought isThinking={loading} result={result} />
-                </div>
-            )}
+                    {/* Optional Text Review */}
+                    <div className="space-y-4">
+                        <div className="flex justify-between items-baseline px-1">
+                            <label className="text-sm font-semibold text-foreground/70">Review (Optional)</label>
+                            <span className="text-xs text-muted-foreground italic">Tell us more</span>
+                        </div>
+                        <Textarea
+                            placeholder="What did you like? What can we improve?"
+                            value={review}
+                            onChange={(e) => setReview(e.target.value)}
+                            className="min-h-[140px] text-lg p-4 resize-none bg-white/50 border-gray-200 focus:border-primary/30 focus:ring-primary/20 transition-all rounded-xl"
+                        />
+                    </div>
+
+                    <Button
+                        onClick={handleSubmit}
+                        disabled={loading || userRating === 0}
+                        size="lg"
+                        className="w-full text-lg h-14 rounded-xl shadow-lg shadow-primary/20 transition-all hover:scale-[1.02]"
+                    >
+                        {loading ? (
+                            <>
+                                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                                Submitting...
+                            </>
+                        ) : (
+                            <>
+                                Send Feedback <Send className="ml-2 h-5 w-5" />
+                            </>
+                        )}
+                    </Button>
+                </CardContent>
+            </Card>
+
+            <p className="text-center text-xs text-muted-foreground/40">
+                Powered by Customer Experience Engine
+            </p>
         </div>
     );
 };

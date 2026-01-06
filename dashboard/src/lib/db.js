@@ -6,11 +6,17 @@ export const saveReview = async (review) => {
             .from('reviews')
             .insert([
                 {
-                    rating: review.rating,
+                    user_rating: review.user_rating, // Manual Input
                     text: review.text,
+
+                    // AI Outputs
+                    rating: review.rating, // AI Predicted
                     sentiment: review.sentiment,
                     explanation: review.explanation,
-                    dimensions: review.dimensions
+                    dimensions: review.dimensions,
+                    ai_response: review.ai_response,
+                    ai_summary: review.ai_summary,
+                    ai_action: review.ai_action
                 }
             ])
             .select();

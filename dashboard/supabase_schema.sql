@@ -1,25 +1,15 @@
--- Create reviews table
-create table public.reviews (
-  id uuid default gen_random_uuid() primary key,
-  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
-  rating integer not null,
-  text text not null,
-  sentiment text,
-  explanation text,
-  dimensions jsonb
-);
+-- The table likely already exists, so we need to explicit add the columns
+-- Run these commands to fix the "Could not find column" error
 
--- Enable Row Level Security (RLS)
+alter table public.reviews 
+add column if not exists user_rating integer,
+add column if not exists text text, -- Ensure text column exists (is nullable now)
+add column if not exists ai_response text,
+add column if not exists ai_summary text,
+add column if not exists ai_action text;
+
+-- Make sure RLS is still enabled
 alter table public.reviews enable row level security;
 
--- Create policy to allow anonymous reads (for the public dashboard)
-create policy "Allow public read access"
-on public.reviews for select
-to anon
-using (true);
-
--- Create policy to allow anonymous inserts (for the analyzer submission)
-create policy "Allow public insert access"
-on public.reviews for insert
-to anon
-with check (true);
+-- Refreshes the schema cache (sometimes needed)
+NOTIFY pgrst, 'reload config';

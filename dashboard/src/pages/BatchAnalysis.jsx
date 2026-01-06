@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -55,14 +54,14 @@ const BatchAnalysis = () => {
             <div className="flex flex-col md:flex-row gap-6 justify-between items-start md:items-center">
                 <div>
                     <h2 className="text-3xl font-bold tracking-tight text-primary">Admin Dashboard</h2>
-                    <p className="text-muted-foreground mt-1">Live overview of incoming feedback and analytics.</p>
+                    <p className="text-muted-foreground mt-1">Live overview of feedback, summaries, and recommended actions.</p>
                 </div>
                 <div className="flex gap-3">
                     <Button variant="outline" onClick={handleLoadSample} className={dataLoaded ? "hidden" : ""}>
                         <FileText className="mr-2 h-4 w-4" /> Load Demo Data
                     </Button>
-                    <Button variant="secondary">
-                        <RefreshCcw className="mr-2 h-4 w-4" /> Auto-Live
+                    <Button variant="secondary" onClick={fetchData}>
+                        <RefreshCcw className="mr-2 h-4 w-4" /> Refresh
                     </Button>
                 </div>
             </div>
@@ -72,7 +71,7 @@ const BatchAnalysis = () => {
                 <CardHeader className="flex flex-row items-center justify-between">
                     <div>
                         <CardTitle>Recent Submissions</CardTitle>
-                        <CardDescription>Real-time feed from the analyzer.</CardDescription>
+                        <CardDescription>Real-time feed from the User Dashboard.</CardDescription>
                     </div>
                     <div className="relative w-64">
                         <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -86,35 +85,54 @@ const BatchAnalysis = () => {
                 </CardHeader>
                 <CardContent>
                     <div className="rounded-md border bg-white">
+                        {/* Table Header */}
                         <div className="grid grid-cols-12 gap-4 p-4 border-b bg-muted/40 font-medium text-sm text-muted-foreground">
                             <div className="col-span-1">Rating</div>
-                            <div className="col-span-8">Review Summary</div>
-                            <div className="col-span-2">Sentiment</div>
+                            <div className="col-span-4">Review Text</div>
+                            <div className="col-span-3">AI Summary</div>
+                            <div className="col-span-3">Recommended Action</div>
                             <div className="col-span-1 text-right">Time</div>
                         </div>
-                        <div className="max-h-[300px] overflow-y-auto">
+                        {/* Table Body */}
+                        <div className="max-h-[400px] overflow-y-auto">
                             {filteredSubmissions.length === 0 ? (
                                 <div className="p-8 text-center text-muted-foreground">
                                     No submissions found. Try submitting a review in the Analyzer.
                                 </div>
                             ) : (
                                 filteredSubmissions.map((sub) => (
-                                    <div key={sub.id} className="grid grid-cols-12 gap-4 p-4 border-b last:border-0 hover:bg-muted/10 transition-colors items-center text-sm">
+                                    <div key={sub.id} className="grid grid-cols-12 gap-4 p-4 border-b last:border-0 hover:bg-muted/10 transition-colors items-start text-sm">
+                                        {/* Rating */}
                                         <div className="col-span-1 font-bold text-lg flex items-center">
-                                            <span className={sub.rating >= 4 ? "text-green-600" : sub.rating <= 2 ? "text-red-500" : "text-yellow-600"}>
-                                                {sub.rating} ★
+                                            <span className={(sub.user_rating || sub.rating) >= 4 ? "text-green-600" : (sub.user_rating || sub.rating) <= 2 ? "text-red-500" : "text-yellow-600"}>
+                                                {sub.user_rating || sub.rating} ★
                                             </span>
                                         </div>
-                                        <div className="col-span-8 truncate pr-4 text-foreground/80">
+
+                                        {/* Review Text */}
+                                        <div className="col-span-4 text-foreground/80 break-words pr-2">
                                             {sub.text}
                                         </div>
-                                        <div className="col-span-2">
-                                            <Badge variant={sub.sentiment === 'positive' ? 'success' : sub.sentiment === 'negative' ? 'destructive' : 'secondary'} className="capitalize">
-                                                {sub.sentiment}
-                                            </Badge>
+
+                                        {/* AI Summary */}
+                                        <div className="col-span-3 text-muted-foreground italic bg-muted/20 p-2 rounded text-xs">
+                                            {sub.ai_summary || "Processing..."}
                                         </div>
+
+                                        {/* Recommended Action */}
+                                        <div className="col-span-3">
+                                            {sub.ai_action ? (
+                                                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                                                    {sub.ai_action.replace('Action: ', '')}
+                                                </Badge>
+                                            ) : (
+                                                <span className="text-xs text-muted-foreground">-</span>
+                                            )}
+                                        </div>
+
+                                        {/* Time */}
                                         <div className="col-span-1 text-right text-xs text-muted-foreground">
-                                            {new Date(sub.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                            {new Date(sub.created_at || sub.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                         </div>
                                     </div>
                                 ))
@@ -133,7 +151,6 @@ const BatchAnalysis = () => {
                 </Card>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in slide-in-from-bottom-8 duration-700">
-                    {/* Key Metrics Cards */}
                     <Card className="md:col-span-2 bg-gradient-to-r from-primary/5 to-secondary/30 border-none shadow-sm">
                         <CardContent className="p-6 flex flex-wrap gap-8 justify-around items-center text-center">
                             <div>
@@ -152,8 +169,6 @@ const BatchAnalysis = () => {
                             </div>
                         </CardContent>
                     </Card>
-
-                    {/* Charts */}
                     <div className="h-[400px]">
                         <RatingChart data={mockRatingData} />
                     </div>

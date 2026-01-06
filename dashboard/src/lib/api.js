@@ -1,13 +1,27 @@
 // Simulated AI Engine for Review Analytics
-// Mimics Chain-of-Thought reasoning with a robust heuristic model
+// Mimics a Professional Business Owner Persona
 
-export const analyzeReview = async (text) => {
-    // Simulate "thinking" time
-    await new Promise(resolve => setTimeout(resolve, 1500 + Math.random() * 1000));
+export const analyzeReview = async (text, userRating) => {
+    // Simulate thinking
+    await new Promise(resolve => setTimeout(resolve, 1500));
+
+    // Handle "Rating Only" Submission
+    if (!text || text.trim() === "") {
+        return {
+            stars: userRating,
+            sentiment: userRating >= 4 ? 'positive' : userRating <= 2 ? 'negative' : 'neutral',
+            explanation: `User provided ${userRating} star rating without text.`,
+            ai_response: generateRatingOnlyResponse(userRating),
+            ai_summary: `Rated ${userRating} stars (No text).`,
+            ai_action: userRating <= 2 ? "Action: Monitor for future low ratings." : "Action: No action needed.",
+            confidence: 1.0,
+            dimensions: {}
+        };
+    }
 
     const lowerText = text.toLowerCase().trim();
 
-    // 1. DIMENSION EXTRACTION
+    // 1. DIMENSION EXTRACTION (Standard Logic)
     const dimensions = {
         food: checkDimension(lowerText, ['food', 'pizza', 'burger', 'steak', 'meal', 'dish', 'flavor', 'taste', 'menu', 'chicken', 'sushi', 'drink']),
         service: checkDimension(lowerText, ['service', 'staff', 'waiter', 'host', 'manager', 'slow', 'fast', 'rude', 'friendly', 'attentive', 'server']),
@@ -15,27 +29,66 @@ export const analyzeReview = async (text) => {
         value: checkDimension(lowerText, ['value', 'price', 'expensive', 'cheap', 'worth', 'cost', 'bill', 'overpriced'])
     };
 
-    // 2. SENTIMENT & SIGNAL DETECTION
+    // 2. SENTIMENT CHECK
     const { score, signals, tone } = analyzeSentiment(lowerText);
 
-    // 3. RATING PREDICTION
-    let stars = calculateStars(score);
-
-    // Edge case: Short enthusiastic texts (e.g., "Phenomenal!") should always be 5
-    if (lowerText.length < 50 && score > 2) stars = 5;
-
-    // 4. GENERATE REASONING
-    const explanation = generateExplanation(dimensions, signals, tone, stars, lowerText);
+    // 3. OWNER RESPONSE GENERATION
+    const ai_response = generateOwnerResponse(tone, dimensions, userRating, lowerText);
+    const ai_summary = generateSummary(dimensions, tone);
+    const ai_action = generateAction(tone, dimensions, userRating);
 
     return {
-        stars,
+        stars: userRating, // Trust user rating for final star count
+        predicted_stars: calculateStars(score), // Internal check
         sentiment: tone,
-        explanation,
-        confidence: min(0.85 + (Math.abs(score) * 0.05), 0.99), // Higher confidence for stronger sentiments
+        explanation: `User rated ${userRating}. Text sentiment analysis score: ${score}.`,
+        ai_response,
+        ai_summary,
+        ai_action,
+        confidence: 0.95,
         dimensions
     };
 };
 
+function generateRatingOnlyResponse(stars) {
+    if (stars === 5) return "Wow! Thank you for the perfect rating! We're thrilled you enjoyed your visit.";
+    if (stars === 4) return "Thank you for the great rating! We hope to see you again soon.";
+    if (stars === 3) return "Thanks for visiting. We hope to impress you more next time!";
+    return "Thank you for your feedback. We're sorry if we didn't meet your expectations.";
+}
+
+function generateOwnerResponse(tone, dimensions, stars, text) {
+    // High Rating Response
+    if (stars >= 4) {
+        if (text.length < 20) return "Thank you so much! We're happy to hear you had a great time.";
+        return "Thank you for the wonderful review! We're absolutely delighted that you enjoyed your experience. We can't wait to welcome you back!";
+    }
+
+    // Low Rating / Complaint Response
+    if (stars <= 2 || tone === 'negative') {
+        return "We represent the management team, and we want to sincerely apologize. This is not the standard we strive for. We'd love the chance to make this right—please reach out to us directly.";
+    }
+
+    // Mixed / Neutral
+    return "Thank you for your feedback. We appreciate you visiting us and will use your comments to improve.";
+}
+
+function generateSummary(dimensions, tone) {
+    const feats = Object.entries(dimensions)
+        .filter(([k, v]) => v.includes('Detected'))
+        .map(([k]) => k)
+        .join(', ');
+    return feats ? `Discussed: ${feats}. Sentiment: ${tone}` : `Sentiment: ${tone}`;
+}
+
+function generateAction(tone, dimensions, stars) {
+    if (stars <= 2) return "Action: IMMEDIATE: Contact customer & investigate.";
+    if (tone === 'negative') return "Action: Review specific complaints with team.";
+    if (stars === 5) return "Action: Share positive feedback with staff.";
+    return "Action: No immediate action required.";
+}
+
+// ... Keep Helpers (checkDimension, analyzeSentiment, calculateStars) ...
 function checkDimension(text, keywords) {
     const found = keywords.find(k => text.includes(k));
     return found ? `Detected (${found})` : 'Not mentioned';
@@ -89,30 +142,3 @@ function calculateStars(score) {
     if (score >= -3) return 2;
     return 1;
 }
-
-function generateExplanation(dimensions, signals, tone, stars, text) {
-    const lines = [];
-
-    // Step 1
-    const activeDims = Object.keys(dimensions).filter(k => dimensions[k] !== 'Not mentioned');
-    const dimStr = activeDims.length > 0
-        ? `Focused on ${activeDims.join(', ')}.`
-        : "General experience assessment.";
-    lines.push(`1. Analyzed key dimensions: ${dimStr}`);
-
-    // Step 2
-    if (signals.length > 0) {
-        const topSignals = signals.slice(0, 3).join(", ");
-        lines.push(`2. Signals identified: ${topSignals}.`);
-    } else {
-        lines.push("2. No strong sentiment keywords detected (neutral phrasing).");
-    }
-
-    // Step 3
-    const starDesc = stars === 5 ? "Exceptional" : stars === 1 ? "Very Poor" : stars === 3 ? "Average" : stars === 4 ? "Good" : "Below Average";
-    lines.push(`3. Conclusion: Tone is ${tone}. Assigning ${stars} stars (${starDesc}).`);
-
-    return lines.join("\n");
-}
-
-function min(a, b) { return a < b ? a : b; }
