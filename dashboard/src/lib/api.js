@@ -1,140 +1,8 @@
-// Simulated AI Engine for Review Analytics
-// Mimics a Professional Business Owner Persona
+const API_KEY = import.meta.env.VITE_CEREBRAS_API_KEY;
+const API_BASE = import.meta.env.VITE_CEREBRAS_API_BASE || "https://api.cerebras.ai/v1";
+const MODEL = import.meta.env.VITE_MODEL_NAME || "gpt-oss-120b";
 
-export const analyzeReview = async (text, userRating) => {
-    // Simulate thinking
-    await new Promise(resolve => setTimeout(resolve, 1500));
-
-    // Handle "Rating Only" Submission
-    if (!text || text.trim() === "") {
-        return {
-            stars: userRating,
-            sentiment: userRating >= 4 ? 'positive' : userRating <= 2 ? 'negative' : 'neutral',
-            explanation: `User provided ${userRating} star rating without text.`,
-            ai_response: generateRatingOnlyResponse(userRating),
-            ai_summary: `Rated ${userRating} stars (No text).`,
-            ai_action: userRating <= 2 ? "Action: Monitor for future low ratings." : "Action: No action needed.",
-            confidence: 1.0,
-            dimensions: {}
-        };
-    }
-
-    const lowerText = text.toLowerCase().trim();
-
-    // 1. DIMENSION EXTRACTION (Standard Logic)
-    const dimensions = {
-        food: checkDimension(lowerText, ['food', 'pizza', 'burger', 'steak', 'meal', 'dish', 'flavor', 'taste', 'menu', 'chicken', 'sushi', 'drink']),
-        service: checkDimension(lowerText, ['service', 'staff', 'waiter', 'host', 'manager', 'slow', 'fast', 'rude', 'friendly', 'attentive', 'server']),
-        ambiance: checkDimension(lowerText, ['ambiance', 'atmosphere', 'vibe', 'decor', 'noise', 'music', 'lighting', 'seat', 'clean', 'dirty']),
-        value: checkDimension(lowerText, ['value', 'price', 'expensive', 'cheap', 'worth', 'cost', 'bill', 'overpriced'])
-    };
-
-    // 2. SENTIMENT CHECK
-    const { score, signals, tone } = analyzeSentiment(lowerText);
-
-    // 3. OWNER RESPONSE GENERATION
-    const ai_response = generateOwnerResponse(tone, dimensions, userRating, lowerText);
-    const ai_summary = generateSummary(dimensions, tone);
-    const ai_action = generateAction(tone, dimensions, userRating);
-
-    return {
-        stars: userRating, // Trust user rating for final star count
-        predicted_stars: calculateStars(score), // Internal check
-        sentiment: tone,
-        explanation: `User rated ${userRating}. Text sentiment analysis score: ${score}.`,
-        ai_response,
-        ai_summary,
-        ai_action,
-        confidence: 0.95,
-        dimensions
-    };
-};
-
-function generateRatingOnlyResponse(stars) {
-    if (stars === 5) return "Wow! Thank you for the perfect rating! We're thrilled you enjoyed your visit.";
-    if (stars === 4) return "Thank you for the great rating! We hope to see you again soon.";
-    if (stars === 3) return "Thanks for visiting. We hope to impress you more next time!";
-    return "Thank you for your feedback. We're sorry if we didn't meet your expectations.";
-}
-
-function generateOwnerResponse(tone, dimensions, stars, text) {
-    // High Rating Response
-    if (stars >= 4) {
-        if (text.length < 20) return "Thank you so much! We're happy to hear you had a great time.";
-        return "Thank you for the wonderful review! We're absolutely delighted that you enjoyed your experience. We can't wait to welcome you back!";
-    }
-
-    // Low Rating / Complaint Response
-    if (stars <= 2 || tone === 'negative') {
-        return "We represent the management team, and we want to sincerely apologize. This is not the standard we strive for. We'd love the chance to make this right—please reach out to us directly.";
-    }
-
-    // Mixed / Neutral
-    return "Thank you for your feedback. We appreciate you visiting us and will use your comments to improve.";
-}
-
-function generateSummary(dimensions, tone) {
-    const feats = Object.entries(dimensions)
-        .filter(([k, v]) => v.includes('Detected'))
-        .map(([k]) => k)
-        .join(', ');
-    return feats ? `Discussed: ${feats}. Sentiment: ${tone}` : `Sentiment: ${tone}`;
-}
-
-function generateAction(tone, dimensions, stars) {
-    if (stars <= 2) return "Action: IMMEDIATE: Contact customer & investigate.";
-    if (tone === 'negative') return "Action: Review specific complaints with team.";
-    if (stars === 5) return "Action: Share positive feedback with staff.";
-    return "Action: No immediate action required.";
-}
-
-// ... Keep Helpers (checkDimension, analyzeSentiment, calculateStars) ...
-function checkDimension(text, keywords) {
-    const found = keywords.find(k => text.includes(k));
-    return found ? `Detected (${found})` : 'Not mentioned';
-}
-
-function analyzeSentiment(text) {
-    // Expanded Dictionary
-    const superlatives = ['phenomenal', 'outstanding', 'incredible', 'amazing', 'perfect', 'world-class', 'exquisite', 'heavenly', 'superb', 'fantastic', 'mind-blowing', 'best', 'loved', 'excellent'];
-    const positives = ['good', 'great', 'nice', 'tasty', 'delicious', 'fresh', 'friendly', 'clean', 'liked', 'enjoyed', 'decent', 'cool', 'happy'];
-    const negatives = ['bad', 'poor', 'mediocre', 'bland', 'dry', 'slow', 'expensive', 'noisy', 'dirty', 'small', 'cold', 'salty'];
-    const disasters = ['terrible', 'horrible', 'awful', 'gross', 'worst', 'disgusting', 'rude', 'inedible', 'hated', 'avoid', 'never again', 'poison'];
-
-    let score = 0;
-    const signals = [];
-
-    // Superlatives (+3)
-    superlatives.forEach(w => {
-        if (text.includes(w)) { score += 3; signals.push(`Superlative: "${w}"`); }
-    });
-
-    // Positives (+1)
-    positives.forEach(w => {
-        if (text.includes(w)) { score += 1; signals.push(`Positive: "${w}"`); }
-    });
-
-    // Negatives (-1.5)
-    negatives.forEach(w => {
-        if (text.includes(w)) { score -= 1.5; signals.push(`Negative: "${w}"`); }
-    });
-
-    // Disasters (-4)
-    disasters.forEach(w => {
-        if (text.includes(w)) { score -= 4; signals.push(`Critical: "${w}"`); }
-    });
-
-    // Context checks
-    if (text.includes("not good") || text.includes("not great")) { score -= 1.5; signals.push('Negation detected'); }
-    if (text.includes("wait") && (text.includes("long") || text.includes("minute") || text.includes("hour"))) { score -= 1; signals.push('Wait time issue'); }
-
-    let tone = 'neutral';
-    if (score >= 2) tone = 'positive';
-    else if (score <= -1) tone = 'negative';
-
-    return { score, signals, tone };
-}
-
+// Helper to calculate stars from score if fallback is needed
 function calculateStars(score) {
     if (score >= 2.5) return 5;
     if (score >= 1) return 4;
@@ -142,3 +10,122 @@ function calculateStars(score) {
     if (score >= -3) return 2;
     return 1;
 }
+
+export const analyzeReview = async (text, userRating) => {
+    // 1. Validate Configuration
+    if (!API_KEY) {
+        console.error("Missing VITE_CEREBRAS_API_KEY in .env");
+        return {
+            stars: userRating,
+            sentiment: 'neutral',
+            explanation: "Configuration Error: API Key missing. Please ensure VITE_CEREBRAS_API_KEY is allowed in .env",
+            ai_response: "System Error: Unable to contact AI service.",
+            ai_summary: "Error: No API Key",
+            ai_action: "Action: Check system configuration.",
+            dimensions: {}
+        };
+    }
+
+    // 2. Construct System Prompt
+    const systemPrompt = `
+You are an expert Restaurant Manager and CX Analyst.
+Your task is to analyze customer reviews and output valid JSON only.
+
+INPUT DATA:
+- Star Rating (1-5)
+- Review Text (Optional)
+
+OUTPUT SCHEMA:
+{
+  "sentiment": "positive" | "negative" | "neutral",
+  "explanation": "Brief reasoning for the sentiment",
+  "ai_response": "A polite, human-like reply from the Owner. Adapt tone to the rating.",
+  "ai_summary": "Concise 5-word summary for the dashboard.",
+  "ai_action": "Action: [Specific Action] (e.g., 'Action: Contact Customer', 'Action: Thank Staff', 'Action: None')",
+  "dimensions": {
+    "food": "Detected (positive/negative)" | "Not mentioned",
+    "service": "Detected (positive/negative)" | "Not mentioned",
+    "ambiance": "Detected (positive/negative)" | "Not mentioned",
+    "value": "Detected (positive/negative)" | "Not mentioned"
+  }
+}
+
+RULES:
+1. Trust the Star Rating:
+   - 4-5 Stars = Sentiment MUST be "positive". Response MUST be grateful.
+   - 1-2 Stars = Sentiment MUST be "negative". Response MUST be apologetic.
+   - 3 Stars = Neutral/Mixed.
+2. If text is empty, generate a generic response based ONLY on the stars.
+3. Output RAW JSON only. No markdown formatting.
+`;
+
+    // 3. Construct User Message
+    const userMessage = `Rating: ${userRating} Stars\nReview: "${text || "(No text provided)"}"`;
+
+    // Construct Base URL safely (remove trailing slashes or duplicate paths)
+    const normalizedBase = API_BASE.replace(/\/chat\/completions\/?$/, "").replace(/\/+$/, "");
+
+    try {
+        const response = await fetch(`${normalizedBase}/chat/completions`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${API_KEY}`
+            },
+            body: JSON.stringify({
+                model: MODEL,
+                messages: [
+                    { role: "system", content: systemPrompt },
+                    { role: "user", content: userMessage }
+                ],
+                temperature: 0.2, // Low temp for consistent JSON
+                max_tokens: 500,
+                response_format: { type: "json_object" }
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`Cerebras API Error: ${response.status} ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        const aiContent = data.choices[0].message.content;
+
+        // 4. Parse JSON Response
+        const result = JSON.parse(aiContent);
+
+        // 5. Return Formatted Data
+        return {
+            stars: userRating, // Keep original user rating
+            predicted_stars: userRating, // Assume AI agrees with user for now
+            sentiment: result.sentiment,
+            explanation: result.explanation,
+            ai_response: result.ai_response,
+            ai_summary: result.ai_summary,
+            ai_action: result.ai_action,
+            dimensions: result.dimensions || {},
+            confidence: 1.0
+        };
+
+    } catch (error) {
+        console.error("AI Analysis Failed:", error);
+
+        // Fallback Logic:
+        // 1. Admin gets the truth ("AI Offline")
+        // 2. User gets a polite, generic response (No error details)
+
+        const fallbackResponse = userRating >= 4
+            ? "Thank you so much! We're thrilled you enjoyed your experience."
+            : "Thank you for your feedback. We appreciate you visiting us.";
+
+        return {
+            stars: userRating,
+            sentiment: userRating >= 4 ? 'positive' : 'neutral',
+            explanation: "AI service temporarily unavailable. Using fallback logic.",
+            ai_response: fallbackResponse, // Clean for user
+            ai_summary: "System: AI Offline (Check Logs)", // Informative for admin
+            ai_action: "Action: Manual Review Required",
+            dimensions: {}
+        };
+    }
+};
