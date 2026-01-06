@@ -4,73 +4,66 @@
 
 @layer base {
   :root {
-    /* Cream Background */
-    --background: 40 33% 98%;
-    --foreground: 353 42% 20%;
-    /* Dark Wine/Brown for text */
+    /* 
+      Theme: Organic Luxury (Light Mode Version)
+      Reduced eye strain while keeping palette identity.
+      
+      Palette:
+      Noir De Vigne: #111A19 (Used for Text)
+      Emerald Green: #284139 (Used for Primary Brand)
+      Wasabi: #809076 (Used for Borders/Subtle)
+      Creased Khaki: #F8D794 (Used for Highlights)
+      Egyptian Earth: #BB6830 (Used for Accents)
+    */
 
-    /* Card - Slightly warmer white */
+    /* Background: Soft Off-White/Pale Khaki Tint */
+    --background: 40 20% 97%;
+    /* #FAF8F2 */
+
+    /* Foreground: Noir De Vigne (Deep Dark Green) */
+    --foreground: 173 21% 8%;
+    /* #111A19 */
+
+    /* Card: White with subtle tint */
     --card: 0 0% 100%;
-    --card-foreground: 353 42% 20%;
+    --card-foreground: 173 21% 8%;
 
+    /* Popover */
     --popover: 0 0% 100%;
-    --popover-foreground: 353 42% 20%;
+    --popover-foreground: 173 21% 8%;
 
-    /* Wine Primary */
-    --primary: 353 42% 32%;
-    --primary-foreground: 40 33% 98%;
+    /* Primary: Emerald Green (Solid, readable) */
+    --primary: 161 24% 21%;
+    /* #284139 */
+    --primary-foreground: 39 88% 78%;
+    /* Khaki text on Dark Green button */
 
-    /* Gold/Blush Secondary */
-    --secondary: 46 65% 90%;
-    /* Soft Gold */
-    --secondary-foreground: 353 42% 32%;
+    /* Secondary: Egyptian Earth (Terracotta) */
+    --secondary: 24 59% 46%;
+    /* #BB6830 */
+    --secondary-foreground: 0 0% 100%;
 
-    --muted: 40 20% 94%;
-    --muted-foreground: 353 20% 40%;
+    /* Muted: Wasabi (Sage) */
+    --muted: 95 11% 90%;
+    --muted-foreground: 95 11% 40%;
+    /* Darker sage for text */
 
-    --accent: 46 30% 90%;
-    --accent-foreground: 353 42% 32%;
+    /* Accent: Creased Khaki (for hovers) */
+    --accent: 39 88% 78%;
+    /* #F8D794 */
+    --accent-foreground: 173 21% 8%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    /* Destructive: Muted Red */
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
 
-    --border: 353 20% 90%;
-    --input: 353 20% 90%;
-    --ring: 353 42% 32%;
+    /* Border: Wasabi */
+    --border: 95 11% 80%;
+    --input: 95 11% 80%;
+    --ring: 161 24% 21%;
+    /* Emerald Ring */
 
     --radius: 0.75rem;
-    /* More rounded premium feel */
-  }
-
-  .dark {
-    /* Dark Mode - Deep Wine/Charcoal */
-    --background: 353 42% 10%;
-    --foreground: 40 33% 95%;
-
-    --card: 353 42% 13%;
-    --card-foreground: 40 33% 95%;
-
-    --popover: 353 42% 13%;
-    --popover-foreground: 40 33% 95%;
-
-    --primary: 353 42% 40%;
-    --primary-foreground: 40 33% 98%;
-
-    --secondary: 353 30% 20%;
-    --secondary-foreground: 40 33% 98%;
-
-    --muted: 353 30% 20%;
-    --muted-foreground: 40 20% 70%;
-
-    --accent: 353 30% 25%;
-    --accent-foreground: 40 33% 98%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 353 30% 25%;
-    --input: 353 30% 25%;
-    --ring: 353 42% 40%;
   }
 }
 
@@ -80,7 +73,18 @@
   }
 
   body {
-    @apply bg-background text-foreground;
-    font-feature-settings: "rlig" 1, "calt" 1;
+    @apply bg-background text-foreground font-sans antialiased;
+    /* Subtle organic texture */
+    background-image: radial-gradient(circle at top right, rgba(248, 215, 148, 0.15), transparent 50%),
+      radial-gradient(circle at bottom left, rgba(40, 65, 57, 0.05), transparent 50%);
   }
+}
+
+/* Glassmorphism Utilities (Updated for Light Mode) */
+.glass-panel {
+  @apply bg-white/70 backdrop-blur-md border border-white/40 shadow-xl;
+}
+
+.glass-input {
+  @apply bg-white/50 border-emerald-900/10 text-emerald-950 placeholder:text-muted-foreground focus:border-primary/50 focus:ring-primary/20;
 }
