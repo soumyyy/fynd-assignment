@@ -62,15 +62,13 @@ RULES:
     // 3. Construct User Message
     const userMessage = `Rating: ${userRating} Stars\nReview: "${text || "(No text provided)"}"`;
 
-    // Construct Base URL safely (remove trailing slashes or duplicate paths)
-    const normalizedBase = API_BASE.replace(/\/chat\/completions\/?$/, "").replace(/\/+$/, "");
-
     try {
-        const response = await fetch(`${normalizedBase}/chat/completions`, {
+        // Use local proxy to bypass CORS
+        // Note: We don't send API_KEY here anymore. It's safe on the server.
+        const response = await fetch(`/api/analyze`, {
             method: "POST",
             headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${API_KEY}`
+                "Content-Type": "application/json"
             },
             body: JSON.stringify({
                 model: MODEL,
