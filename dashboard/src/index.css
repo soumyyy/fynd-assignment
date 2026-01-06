@@ -1,0 +1,86 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Cream Background */
+    --background: 40 33% 98%;
+    --foreground: 353 42% 20%;
+    /* Dark Wine/Brown for text */
+
+    /* Card - Slightly warmer white */
+    --card: 0 0% 100%;
+    --card-foreground: 353 42% 20%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 353 42% 20%;
+
+    /* Wine Primary */
+    --primary: 353 42% 32%;
+    --primary-foreground: 40 33% 98%;
+
+    /* Gold/Blush Secondary */
+    --secondary: 46 65% 90%;
+    /* Soft Gold */
+    --secondary-foreground: 353 42% 32%;
+
+    --muted: 40 20% 94%;
+    --muted-foreground: 353 20% 40%;
+
+    --accent: 46 30% 90%;
+    --accent-foreground: 353 42% 32%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 353 20% 90%;
+    --input: 353 20% 90%;
+    --ring: 353 42% 32%;
+
+    --radius: 0.75rem;
+    /* More rounded premium feel */
+  }
+
+  .dark {
+    /* Dark Mode - Deep Wine/Charcoal */
+    --background: 353 42% 10%;
+    --foreground: 40 33% 95%;
+
+    --card: 353 42% 13%;
+    --card-foreground: 40 33% 95%;
+
+    --popover: 353 42% 13%;
+    --popover-foreground: 40 33% 95%;
+
+    --primary: 353 42% 40%;
+    --primary-foreground: 40 33% 98%;
+
+    --secondary: 353 30% 20%;
+    --secondary-foreground: 40 33% 98%;
+
+    --muted: 353 30% 20%;
+    --muted-foreground: 40 20% 70%;
+
+    --accent: 353 30% 25%;
+    --accent-foreground: 40 33% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 353 30% 25%;
+    --input: 353 30% 25%;
+    --ring: 353 42% 40%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
